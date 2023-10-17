@@ -37,12 +37,22 @@ export default class Login {
 
   }
 
+  // TODO:
   handleSubmitAdmin = e => {
     e.preventDefault()
+
+    const inputEmailUser = e.target.querySelector(`input[data-testid="admin-email-input"]`);
+    const inputPasswordUser = e.target.querySelector(`input[data-testid="admin-password-input"]`);
+    
+    console.log("inputEmailUser:", inputEmailUser);
+    console.log("inputPasswordUser:", inputPasswordUser);
+
     const user = {
       type: "Admin",
-      email: e.target.querySelector(`input[data-testid="employee-email-input"]`).value,
-      password: e.target.querySelector(`input[data-testid="employee-password-input"]`).value,
+      // email: e.target.querySelector(`input[data-testid="employee-email-input"]`).value,
+      // password: e.target.querySelector(`input[data-testid="employee-password-input"]`).value,
+      email: inputEmailUser.value,
+      password: inputPasswordUser.value,
       status: "connected"
     }
     this.localStorage.setItem("user", JSON.stringify(user))
