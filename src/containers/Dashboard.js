@@ -86,9 +86,24 @@ export default class {
   }
 
   handleEditTicket(e, bill, bills) {
+
+    // NOTES: debugger with console.log
+    console.log("Entering handleEditTicket");
+    console.log("bill:", bill);
+    console.log("bills:", bills);
+
     if (this.counter === undefined || this.id !== bill.id) this.counter = 0
     if (this.id === undefined || this.id !== bill.id) this.id = bill.id
+
+    console.log("this.counter:", this.counter);
+    console.log("this.id:", this.id);
+
     if (this.counter % 2 === 0) {
+
+      // NOTES: debugger with console.log step 2! (counter is even)
+      console.log("Entering if statement (counter is even)");
+      console.log("bill.id:", bill.id);
+
       bills.forEach(b => {
         $(`#open-bill${b.id}`).css({ background: '#0D5AE5' })
       })
@@ -96,26 +111,42 @@ export default class {
       $('.dashboard-right-container div').html(DashboardFormUI(bill))
       $('.vertical-navbar').css({ height: '150vh' })
       this.counter ++
-    } else {
-      $(`#open-bill${bill.id}`).css({ background: '#0D5AE5' })
+    } 
+    
+    // else {
+    //   // NOTES: debugger with console.log step 2! (counter is odd)
+    //   console.log("Entering else statement (counter is odd)");
+    //   $(`#open-bill${bill.id}`).css({ background: '#0D5AE5' })
 
-      $('.dashboard-right-container div').html(`
-        <div id="big-billed-icon" data-testid="big-billed-icon"> ${BigBilledIcon} </div>
-      `)
-      $('.vertical-navbar').css({ height: '120vh' })
-      this.counter ++
-    }
+    //   $('.dashboard-right-container div').html(`
+    //     <div id="big-billed-icon" data-testid="big-billed-icon"> ${BigBilledIcon} </div>
+    //   `)
+    //   $('.vertical-navbar').css({ height: '120vh' })
+    //   this.counter ++
+
+    //   // NOTES: step 3: debugger with Chrome 
+    //   debugger;
+    // }
+
     $('#icon-eye-d').click(this.handleClickIconEye)
     $('#btn-accept-bill').click((e) => this.handleAcceptSubmit(e, bill))
     $('#btn-refuse-bill').click((e) => this.handleRefuseSubmit(e, bill))
   }
 
   handleAcceptSubmit = (e, bill) => {
+
+    // NOTES: debugger with console.log
+    console.log("Entering handleAcceptSubmit");
+    console.log("bill:", bill);
+
     const newBill = {
       ...bill,
       status: 'accepted',
       commentAdmin: $('#commentary2').val()
     }
+
+    console.log("newBill:", newBill);
+
     this.updateBill(newBill)
     this.onNavigate(ROUTES_PATH['Dashboard'])
   }
@@ -131,8 +162,17 @@ export default class {
   }
 
   handleShowTickets(e, bills, index) {
+
+    // NOTES: debugger with console.log
+    console.log("Entering handleShowTickets");
+    console.log("index:", index);
+
     if (this.counter === undefined || this.index !== index) this.counter = 0
     if (this.index === undefined || this.index !== index) this.index = index
+
+    console.log("this.counter:", this.counter);
+    console.log("this.index:", this.index);
+
     if (this.counter % 2 === 0) {
       $(`#arrow-icon${this.index}`).css({ transform: 'rotate(0deg)'})
       $(`#status-bills-container${this.index}`)
@@ -154,6 +194,10 @@ export default class {
   }
 
   getBillsAllUsers = () => {
+
+    // NOTES: debugger with console.log
+    console.log("Entering getBillsAllUsers");
+
     if (this.store) {
       return this.store
       .bills()
