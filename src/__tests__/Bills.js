@@ -9,6 +9,9 @@ import { ROUTES_PATH} from "../constants/routes.js";
 import {localStorageMock} from "../__mocks__/localStorage.js";
 
 import router from "../app/Router.js";
+import { toHaveClass } from "@testing-library/jest-dom/matchers";
+
+expect.extend({ toHaveClass });
 
 describe("Given I am connected as an employee", () => {
   describe("When I am on Bills Page", () => {
@@ -24,9 +27,11 @@ describe("Given I am connected as an employee", () => {
       router()
       window.onNavigate(ROUTES_PATH.Bills)
       await waitFor(() => screen.getByTestId('icon-window'))
-      const windowIcon = screen.getByTestId('icon-window')
-      //to-do write expect expression
-
+      
+      // NOTES: write expect expression
+      // Check if the icon has the right class
+      const windowIcon = screen.getByTestId("icon-window");
+      expect(windowIcon).toHaveClass("active-icon");
     })
     
     test("Then bills should be ordered from earliest to latest", () => {
