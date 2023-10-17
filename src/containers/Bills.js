@@ -27,6 +27,11 @@ export default class {
     $('#modaleFile').modal('show')
   }
 
+  // NOTE: function to handle date sorting
+  handleDateSortView = (bills) => {
+    return bills.sort((a,b) => ((b<a) ? 1: -1));
+  }
+
   getBills = () => {
     if (this.store) {
       return this.store
@@ -53,7 +58,8 @@ export default class {
             }
           })
           console.log('length', bills.length)
-        return bills
+          console.log(bills);
+          return this.handleDateSortView(bills);
       })
     }
   }
