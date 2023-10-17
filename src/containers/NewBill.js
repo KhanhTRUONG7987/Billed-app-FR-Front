@@ -17,9 +17,33 @@ export default class NewBill {
   }
   handleChangeFile = e => {
     e.preventDefault()
-    const file = this.document.querySelector(`input[data-testid="file"]`).files[0]
-    const filePath = e.target.value.split(/\\/g)
-    const fileName = filePath[filePath.length-1]
+    const fileInput = this.document.querySelector(`input[data-testid="file"]`);
+    const file = fileInput.files[0];
+
+    // Check if a file was selected
+    if (!file) {
+      console.log('No file selected.');
+      return;
+    }
+    // const file = this.document.querySelector(`input[data-testid="file"]`).files[0]
+    // const filePath = e.target.value.split(/\\/g)
+    // const fileName = filePath[filePath.length-1]
+
+    // Get the file's extension
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+
+    // Define the allowed extensions
+    const allowedExtensions = ['jpg', 'jpeg', 'png'];
+
+    // Check if the file extension is in the allowed extensions list
+    if (!allowedExtensions.includes(fileExtension)) {
+      console.log('Invalid file format. Please select a JPG, JPEG, or PNG file.');
+      alert('Invalid file format. Please select a JPG, JPEG, or PNG file.');
+      // Clear the file input
+      fileInput.value = "";
+      return;
+    }
+    
     const formData = new FormData()
     const email = JSON.parse(localStorage.getItem("user")).email
     formData.append('file', file)
