@@ -136,17 +136,22 @@ describe('Given I am connected as an Admin', () => {
       })
       document.body.innerHTML = DashboardUI({ data: { bills } })
 
+      // console.log('BILLS?', bills);
+
       const handleShowTickets1 = jest.fn((e) => dashboard.handleShowTickets(e, bills, 1))
       const icon1 = screen.getByTestId('arrow-icon1')
       icon1.addEventListener('click', handleShowTickets1)
       userEvent.click(icon1)
       expect(handleShowTickets1).toHaveBeenCalled()
+
       expect(screen.getByTestId(`open-bill47qAXb6fIm2zOKkLzMro`)).toBeTruthy()
       const iconEdit = screen.getByTestId('open-bill47qAXb6fIm2zOKkLzMro')
       userEvent.click(iconEdit)
       userEvent.click(iconEdit)
       const bigBilledIcon = screen.queryByTestId("big-billed-icon")
-      // expect(bigBilledIcon).toBeTruthy()
+      
+      // NOTES: KanBan task 4
+      expect(bigBilledIcon).not.toBeTruthy()
     })
   })
 
