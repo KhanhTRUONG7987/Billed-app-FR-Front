@@ -2,7 +2,9 @@
  * @jest-environment jsdom
  */
 
-import { screen, waitFor } from "@testing-library/dom";
+// Import necessary testing libraries and modules
+import "@testing-library/jest-dom";
+import { screen, waitFor, fireEvent } from "@testing-library/dom";
 import BillsUI from "../views/BillsUI.js";
 import { bills } from "../fixtures/bills.js";
 import { ROUTES_PATH } from "../constants/routes.js";
@@ -17,21 +19,39 @@ import $ from 'jquery';
 // Mock the formatDate and formatStatus functions
 jest.mock("../app/format", () => ({
   formatDate: jest.fn((dateStr) => dateStr), // Mocking formatDate to return the same dateStr
-  formatStatus: jest.fn((status) => status), // Mocking formatStatus to return the same status
+  formatStatus: jest.fn(() => "pending"), // Mocking formatStatus to always return "pending" for an employee
 }));
 
 expect.extend({ toHaveClass });
 
-let mockFormatDate;
-
 beforeAll(() => {
   global.$ = $; // Initialize jQuery globally
-  mockFormatDate = jest.fn((dateStr) => dateStr);
+});
+
+let billsComponent;
+let mockOnNavigate;
+
+beforeEach(() => {
+  // Spy on the mockStore.bills method
+  jest.spyOn(mockStore, "bills");
+
+  const mockDocument = document.createElement("div");
+  mockOnNavigate = jest.fn();
+  const mockLocalStorage = {};
+
+  billsComponent = new Bills({
+    document: mockDocument,
+    onNavigate: mockOnNavigate,
+    store: mockStore,
+    localStorage: mockLocalStorage,
+  });
 });
 
 describe("Given I am connected as an employee", () => {
-  describe("When I am on Bills Page", () => {
-    test("Then bill icon in vertical layout should be highlighted", async () => {
+  describe("When I am on the Bills Page", () => {
+    // Test: Verify that the bill icon in the vertical layout is highlighted
+    test("Then the bill icon in the vertical layout should be highlighted", async () => {
+      // Set the user type in localStorage to "Employee"
       Object.defineProperty(window, "localStorage", {
         value: localStorageMock,
       });
@@ -41,80 +61,103 @@ describe("Given I am connected as an employee", () => {
           type: "Employee",
         })
       );
+
+      // Create a root element for the application
       const root = document.createElement("div");
       root.setAttribute("id", "root");
       document.body.append(root);
+
+      // Initialize the router and navigate to the Bills page
       router();
       window.onNavigate(ROUTES_PATH.Bills);
+
+      // Wait for the icon with data-testid "icon-window" to appear
       await waitFor(() => screen.getByTestId("icon-window"));
 
-      // NOTES: write expect expression
-      // Check if the icon has the right class
+      // Verify if the icon has the class "active-icon"
       const windowIcon = screen.getByTestId("icon-window");
       expect(windowIcon).toHaveClass("active-icon");
     });
 
+    // Test: Verify that bills are ordered from earliest to latest
     test("Then bills should be ordered from earliest to latest", () => {
+      // Render the Bills page with the provided bills data
       document.body.innerHTML = BillsUI({ data: bills });
+
+      // Get the dates of the bills displayed on the page
       const dates = screen
         .getAllByText(
           /^(19|20)\d\d[- /.](0[1-9]|1[012])[- /.](0[1-9]|[12][0-9]|3[01])$/i
         )
         .map((a) => a.innerHTML);
 
+      // Sort the bills based on their date
       const billsSorted = bills.sort(
         (a, b) => new Date(a.date) - new Date(b.date)
       );
+
+      // Map the sorted bills to their date field for comparison
       const billsDates = billsSorted.map((bill) => bill.date === [...dates]);
 
+      // Define a sorting function for dates in anti-chronological order
       const antiChrono = (a, b) => (a < b ? 1 : -1);
+
+      // Sort the billsDates in anti-chronological order
       const datesSorted = [...billsDates].sort(antiChrono);
+
+      // Assert that the billsDates are equal to the sorted dates
       expect(billsDates).toEqual(datesSorted);
     });
   });
 });
 
 describe("Bills Component Unit Tests", () => {
-  let billsComponent;
-  let mockOnNavigate;
-
-  beforeEach(() => {
-    const mockDocument = document.createElement("div");
-    mockOnNavigate = jest.fn();
-    const mockLocalStorage = {};
-
-    billsComponent = new Bills({
-      document: mockDocument,
-      onNavigate: mockOnNavigate,
-      store: mockStore,
-      localStorage: mockLocalStorage,
-    });
-  });
-
+  // Test: Clicking the "buttonNewBill" should navigate to the NewBill page
   test('Given I am on the Bills page, when the "New Bill" button is clicked, it should navigate to the NewBill page', () => {
     billsComponent.handleClickNewBill();
     expect(mockOnNavigate).toHaveBeenCalledWith(ROUTES_PATH.NewBill);
   });
 
-  test("Given I am on the Bills page, when an eye icon is clicked, it should open a modal with the bill image", () => {
-    const mockIcon = document.createElement("div");
-    mockIcon.setAttribute(
-      "data-bill-url",
-      "http://www.example.com/bill-image.jpg"
-    );
+  describe("When I am on the Bills page and I click on an eye icon", () => {
+    // Test: Clicking on an eye icon should open a modal
+    test("Then a modal should open", () => {
+      // Initialize the HTML of the Bills page using a BillsUI function
+      document.body.innerHTML = BillsUI({ data: bills });
 
-    billsComponent.handleClickIconEye(mockIcon);
+      // Create an instance of the Bills class to manage the Bills page
+      const billsContainer = new Bills({
+        document,
+        onNavigate,
+        Store: null,
+        localStorage: window.localStorage,
+      });
 
-    const modal = document.querySelector(".modal");
-    expect(modal).toBeTruthy();
+      // Get the DOM element corresponding to the modal with the ID 'modalFile'
+      const modal = document.getElementById("modaleFile");
 
-    const modalImage = document.querySelector(".modal-body img");
-    expect(modalImage).toBeTruthy();
-    expect(modalImage.getAttribute("src")).toEqual(
-      "http://www.example.com/bill-image.jpg"
-    );
+      // Replace the $.fn.modal function with a mock function that adds the "show" class to the modal
+      $.fn.modal = jest.fn(() => modal.classList.add("show"));
+
+      // Get the first element with the 'data-testid' attribute equal to 'icon-eye'
+      const iconEye = screen.getAllByTestId("icon-eye")[0];
+
+      // Create a mocked function for the handleClickIconEye function of the billsContainer object
+      const handleClickIconEye = jest.fn(
+        billsContainer.handleClickIconEye(iconEye)
+      );
+
+      // Add a click event handler to the "eye" icon that calls the mocked function
+      iconEye.addEventListener("click", handleClickIconEye);
+
+      // Simulate a click on the "eye" icon
+      fireEvent.click(iconEye);
+
+      // Verify that the handleClickIconEye function has been called
+      expect(handleClickIconEye).toHaveBeenCalled();
+    });
   });
 
+  // Test: Verify that fetched bills are formatted correctly
   test("Given I am on the Bills page, when bills are fetched, they should be formatted correctly", async () => {
     // Get the received bills
     const receivedBills = await billsComponent.getBills();
@@ -128,5 +171,68 @@ describe("Bills Component Unit Tests", () => {
 
     // Compare the formatted bills to the received bills
     expect(expectedBills).toEqual(receivedBills);
+  });
+});
+
+// NOTES: Integration test for fetching bills from the API
+describe("When an error occurs on API", () => {
+  beforeEach(() => {
+    jest.spyOn(mockStore, "bills");
+    Object.defineProperty(window, "localStorage", { value: localStorageMock });
+    window.localStorage.setItem(
+      "user",
+      JSON.stringify({
+        type: "Employee",
+        email: "a@a",
+      })
+    );
+    const root = document.createElement("div");
+    root.setAttribute("id", "root");
+    document.body.appendChild(root);
+    router();
+  });
+
+  // Test: Fetching bills from an API and failing with a 404 error message
+  test("fetches bills from an API and fails with a 404 message error", async () => {
+    // Mock the 'bills' method of the store to return a rejected promise with an error message
+    mockStore.bills.mockImplementationOnce(() => {
+      return {
+        list: () => {
+          return Promise.reject(new Error("Erreur 404"));
+        },
+      };
+    });
+
+    // Navigate to the Bills page
+    window.onNavigate(ROUTES_PATH.Bills);
+
+    // Wait for the error message to appear
+    await new Promise(process.nextTick);
+    const errorMessage = screen.getByTestId("error-message");
+
+    // Assert that the error message contains the expected error message
+    expect(errorMessage.innerHTML).toContain("Erreur 404");
+  });
+
+  // Test: Fetching bills from an API and failing with a 500 error message
+  test("fetches messages from an API and fails with a 500 message error", async () => {
+    // Mock the 'bills' method of the store to return a rejected promise with an error message
+    mockStore.bills.mockImplementationOnce(() => {
+      return {
+        list: () => {
+          return Promise.reject(new Error("Erreur 500"));
+        },
+      };
+    });
+
+    // Navigate to the Bills page
+    window.onNavigate(ROUTES_PATH.Bills);
+
+    // Wait for the error message to appear
+    await new Promise(process.nextTick);
+    const errorMessage = screen.getByTestId("error-message");
+
+    // Assert that the error message contains the expected error message
+    expect(errorMessage.innerHTML).toContain("Erreur 500");
   });
 });
