@@ -15,7 +15,9 @@ export default class NewBill {
     this.billId = null
     new Logout({ document, localStorage, onNavigate })
   }
+  
   handleChangeFile = e => {
+    console.log("handleChangeFile called");
     e.preventDefault()
     const fileInput = this.document.querySelector(`input[data-testid="file"]`);
     const file = fileInput.files[0];
@@ -26,8 +28,10 @@ export default class NewBill {
       return;
     }
     // const file = this.document.querySelector(`input[data-testid="file"]`).files[0]
-    // const filePath = e.target.value.split(/\\/g)
-    // const fileName = filePath[filePath.length-1]
+    const filePath = e.target.value.split(/\\/g)
+    console.log(e.target.value);
+    
+    const fileName = filePath[filePath.length-1]
 
     // Get the file's extension
     const fileExtension = file.name.split('.').pop().toLowerCase();
@@ -65,6 +69,7 @@ export default class NewBill {
       }).catch(error => console.error(error))
   }
   handleSubmit = e => {
+    console.log("handleSubmit called");
     e.preventDefault()
     console.log('e.target.querySelector(`input[data-testid="datepicker"]`).value', e.target.querySelector(`input[data-testid="datepicker"]`).value)
     const email = JSON.parse(localStorage.getItem("user")).email

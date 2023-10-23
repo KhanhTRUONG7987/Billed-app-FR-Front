@@ -2,27 +2,36 @@
  * @jest-environment jsdom
  */
 
-// Import necessary testing libraries and modules
 import "@testing-library/jest-dom";
 import { screen, fireEvent, waitFor } from "@testing-library/dom";
-import NewBillUI from "../views/NewBillUI.js";
 import NewBill from "../containers/NewBill.js";
+import NewBillUI from "../views/NewBillUI.js";
 import { localStorageMock } from "../__mocks__/localStorage.js";
 import mockStore from "../__mocks__/store.js";
-import { ROUTES, ROUTES_PATH } from "../constants/routes.js";
 import router from "../app/Router.js";
+import { ROUTES, ROUTES_PATH } from "../constants/routes.js";
 
-// Mock the store module
-jest.mock("../app/Store", () => ({ __esModule: true, default: mockStore }));
+// Mock the store for testing
+jest.mock("../app/Store", () => mockStore);
 
-// Define a function for simulating navigation
+// Define a function for route navigation
 const onNavigate = (pathname) => {
   document.body.innerHTML = ROUTES({ pathname });
 };
 
-// Set up initial test environment before each test
+let customAlert = null;
+
+beforeAll(() => {
+  customAlert = window.alert;
+  window.alert = jest.fn();
+});
+
+afterAll(() => {
+  window.alert = customAlert;
+});
+
 beforeEach(() => {
-  // Mock the window.localStorage and set a user in localStorage
+  // Set up the test environment
   Object.defineProperty(window, "localStorage", { value: localStorageMock });
   window.localStorage.setItem(
     "user",
@@ -31,104 +40,174 @@ beforeEach(() => {
       email: "employee@test.tld",
     })
   );
-
-  // Set the initial HTML content for the NewBill page
   document.body.innerHTML = NewBillUI();
 });
 
-// Start describing the test scenarios for an employee user
+// Begin describing the test suite
 describe("Given I am connected as an employee", () => {
   describe("When I am on the NewBill Page", () => {
     let newBillMock;
 
     beforeEach(() => {
-      // Initialize the NewBill component for testing
+      // Create an instance of NewBill
       newBillMock = new NewBill({
-        document,
-        onNavigate,
+        document: document,
+        onNavigate: onNavigate,
         store: mockStore,
         localStorage: localStorageMock,
       });
     });
 
     afterEach(() => {
-      // Clear all mocked function calls after each test
+      // Clear all mocks after each test
       jest.clearAllMocks();
     });
 
-    // Test: File input should trigger handleChangeFile on file selection
     test("Then file input should trigger handleChangeFile on file selection", () => {
-      const eventMock = { preventDefault: jest.fn() };
+      // Initialize the HTML content of the NewBill page using the NewBillUI function.
+      const html = NewBillUI();
+      document.body.innerHTML = html;
+
+      // Create a mock of a simulated event.
+      const eventMock = {
+        preventDefault: jest.fn(),
+        target: { value: "test.png" },
+      };
+
+      // Spy on the handleChangeFile method of newBillMock.
       const handleChangeFileSpy = jest.spyOn(newBillMock, "handleChangeFile");
+
+      // Get the file input field from the DOM.
       const fileInput = screen.getByTestId("file");
+
+      // Create a simulated File object.
       const file = new File(["test"], "image.jpg", { type: "image/jpeg" });
       Object.defineProperty(fileInput, "files", { value: [file] });
+
+      // Simulate changing the value of the file input field.
       fireEvent.change(fileInput);
+
+      // Call the handleChangeFile function of newBillMock with the simulated event.
       newBillMock.handleChangeFile(eventMock);
+
+      // Verify that handleChangeFile has been called.
       expect(handleChangeFileSpy).toHaveBeenCalled();
     });
 
     // Test: Adding a file with the wrong extension should display an error
-    test("Then I add a file with the wrong extension, the program must return an error", async () => {
-      const fileInput = screen.getByTestId("file");
-      const file = new File(["test"], "image.pdf", { type: "application/pdf" });
-      Object.defineProperty(fileInput, "files", { value: [file] });
-      const eventMock = {
-        preventDefault: jest.fn(),
-        target: fileInput,
+    test("Then adding a file with the wrong extension should display an error", async () => {
+      const fileInput = document.querySelector(`input[data-testid="file"]`);
+      const eventData = {
+        preventDefault: () => {},
+        target: {
+          files: [new File(["test"], "image.pdf", { type: "application/pdf" })],
+        },
       };
-      newBillMock.handleChangeFile(eventMock);
 
-      // Use `await waitFor` to wait for the error message to appear on the screen
-      await waitFor(() => {
-        expect(
-          screen.getByText(
-            "Invalid file format. Please select a JPG, JPEG, or PNG file"
-          )
-        ).toBeInTheDocument();
-      });
+      // Mock the alert method
+      const alertMock = jest.fn();
+      window.alert = alertMock;
+
+      // Wait for the form to appear in the document
+      await waitFor(() => screen.getByTestId("form-new-bill"));
+
+      fireEvent.change(fileInput, eventData); // Simulate file change
+
+      // Check if the `alert` method was called with the expected message
+      expect(alertMock).toHaveBeenCalledWith(
+        "Invalid file format. Please select a JPG, JPEG, or PNG file."
+      );
     });
 
-    // Test: A form with 8 fields should be rendered
-    test("Then a form with nine fields should be rendered", () => {
-      const form = screen.getByTestId("form-new-bill");
-      const fields = form.querySelectorAll(
-        "input, select, textarea, [required]"
-      );
-      expect(fields).toHaveLength(8);
+    // Test: A form with 9 fields should be rendered
+    test("Then a form with 9 fields should be rendered", () => {
+      document.body.innerHTML = NewBillUI();
+
+      // Retrieve the form in the DOM
+      const form = document.querySelector("form");
+
+      // Verify the form contains 9 fields
+      expect(form.length).toEqual(9);
+    });
+
+    // Test: Form submission should trigger handleSubmit and redirect to Bills
+    test("Then the form submission should trigger handleSubmit and redirect to Bills", async () => {
+      document.body.innerHTML = `<div id="root"></div>`;
+      router();
+      onNavigate(ROUTES_PATH.NewBill);
+
+      fireEvent.change(screen.getByTestId("expense-type"), {
+        target: { value: "Transports" },
+      });
+      fireEvent.input(screen.getByTestId("expense-name"), {
+        target: { value: "vol" },
+      });
+      fireEvent.input(screen.getByTestId("datepicker"), {
+        target: { value: "2022-08-22" },
+      });
+      const amount = screen.getByTestId("amount");
+      fireEvent.input(amount, {
+        target: { value: "300" },
+      });
+      fireEvent.input(screen.getByTestId("vat"), { target: { value: "40" } });
+      fireEvent.input(screen.getByTestId("pct"), { target: { value: "50" } });
+      fireEvent.input(screen.getByTestId("commentary"), {
+        target: { value: "Some comment" },
+      });
+
+      fireEvent.change(screen.getByTestId("file"), {
+        target: {
+          files: [new File(["image.png"], "image.png", { type: "image/png" })],
+        },
+      });
+
+      const formSubmission = screen.getByTestId("form-new-bill");
+
+      // Create a new instance of NewBill
+      const newBillEmulation = new NewBill({
+        document,
+        onNavigate,
+        store: mockStore,
+        localStorage: window.localStorage,
+      });
+
+      const handleSubmit = jest.fn((e) => newBillEmulation.handleSubmit(e));
+      formSubmission.addEventListener("submit", handleSubmit);
+      fireEvent.submit(formSubmission);
+
+      expect(handleSubmit).toHaveBeenCalled();
+
+      await waitFor(() => {
+        expect(screen.getByText("Mes notes de frais")).toBeInTheDocument();
+      });
     });
   });
 });
 
-// Describe integration test scenarios for the NewBill page
+// Define additional integration test suites
 describe("NewBill Integration Test Suites", () => {
   describe("Given I am a user connected as an employee", () => {
     describe("When I am on NewBill", () => {
-      // Test: Submitting a completed NewBill form should redirect to the Bill page (handleSubmit())
+      // Integration test: Submitting a completed NewBill form should redirect to the Bill page (handleSubmit())
       test("Then I submit a completed NewBill form and I am redirected to the Bill page", async () => {
-        // Set up HTML content for router and navigate to the NewBill page
         document.body.innerHTML = '<div id="root"></div>';
         router();
         onNavigate(ROUTES_PATH.NewBill);
 
-        // Get form input elements and fill them with test data
         const expenseType = screen.getByTestId("expense-type");
         const expenseName = screen.getByTestId("expense-name");
         const datepicker = screen.getByTestId("datepicker");
         const amount = screen.getByTestId("amount");
-        const vat = screen.getByTestId("vat");
-        const pct = screen.getByTestId("pct");
-        const commentary = screen.getByTestId("commentary");
-        const fileInput = screen.getByTestId("file");
-
         fireEvent.change(expenseType, { target: { value: "Transports" } });
         fireEvent.input(expenseName, { target: { value: "vol" } });
         fireEvent.input(datepicker, { target: { value: "2022-08-22" } });
         fireEvent.input(amount, { target: { value: "300" } });
-        fireEvent.input(vat, { target: { value: "40" } });
-        fireEvent.input(pct, { target: { value: "50" } });
-        fireEvent.input(commentary, { target: { value: "Some comment" } });
-        fireEvent.change(fileInput, {
+        fireEvent.input(screen.getByTestId("vat"), { target: { value: "40" } });
+        fireEvent.input(screen.getByTestId("pct"), { target: { value: "50" } });
+        fireEvent.input(screen.getByTestId("commentary"), {
+          target: { value: "Some comment" },
+        });
+        fireEvent.change(screen.getByTestId("file"), {
           target: {
             files: [
               new File(["image.png"], "image.png", { type: "image/png" }),
@@ -144,20 +223,16 @@ describe("NewBill Integration Test Suites", () => {
           localStorage: localStorageMock,
         });
 
-        // Add event listener for form submission and trigger form submission
         const handleSubmit = jest.fn((e) => newBillEmulation.handleSubmit(e));
         formSubmission.addEventListener("submit", handleSubmit);
         fireEvent.submit(formSubmission);
 
-        // Assert that handleSubmit was called
         expect(handleSubmit).toHaveBeenCalled();
 
-        // Wait for the page to redirect and check for the presence of the target element
         await waitFor(() => {
           expect(screen.getByText("Mes notes de frais")).toBeInTheDocument();
         });
 
-        // Verify the presence of a button on the redirected page
         expect(screen.getByTestId("btn-new-bill")).toBeTruthy();
       });
     });
