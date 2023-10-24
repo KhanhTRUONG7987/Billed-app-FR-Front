@@ -101,7 +101,12 @@ describe("Given I am connected as an employee", () => {
         .map((a) => a.innerHTML);
 
       // Extract dates from the bills data
-      const billsDates = billsSorted.map((bill) => bill.date === [...dates]);
+      const billsDates = billsSorted.map((bill) => dates.includes(bill.date));
+      // const billsDates = billsSorted.map((bill) => bill.date === [...dates]);
+
+      console.log("Bills Sorted:", billsSorted);
+      console.log("Dates Extracted:", dates);
+      console.log("Bills Dates:", billsDates);
 
       // Define a sorting function for dates in anti-chronological order
       const antiChrono = (a, b) => (b < a ? 1 : -1);
@@ -113,6 +118,16 @@ describe("Given I am connected as an employee", () => {
       expect(billsDates).toEqual(datesSorted);
     });
   });
+
+  // test("Then bills should be ordered from earliest to latest", () => {
+  // document.body.innerHTML = BillsUI({data: bills})
+  //           const dates = Array
+  //               .from(document.querySelectorAll("td[data-date]"))
+  //               .map(el => el.getAttribute('data-date'));
+  //           const antiChrono = (a, b) => ((a < b) ? -1 : 1)
+  //           const datesSorted = [...dates].sort(antiChrono)
+  //           expect(dates).toEqual(datesSorted)
+  // });
 
   describe("Bills Component Unit Tests", () => {
     // Test: Clicking the "buttonNewBill" should navigate to the NewBill page
